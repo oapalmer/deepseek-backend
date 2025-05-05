@@ -22,18 +22,19 @@ app.post('/ask', async (req, res) => {
     const response = await axios.post(
       'https://api.deepseek.com/v1/chat/completions',
       {
-        model: 'deepseek-chat',
-        messages: [{ role: 'user', content: userQuestion }],
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: userQuestion }],
+        temperature: 0.7
       },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-        },
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+        }
       }
     );
 
-    console.log('Raw Deepseek response:', JSON.stringify(response.data, null, 2));
+    console.log('Deepseek API response:', JSON.stringify(response.data, null, 2));
 
     const aiReply = response.data?.choices?.[0]?.message?.content || 'No reply from Deepseek.';
     res.json({ reply: aiReply });
