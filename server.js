@@ -1,18 +1,3 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const axios = require('axios');
-
-const app = express();
-const port = 3000;
-
-app.use(cors());
-app.use(bodyParser.json());
-
-app.get('/', (req, res) => {
-  res.send('SoftAI Backend is working!');
-});
-
 app.post('/ask', async (req, res) => {
   const userQuestion = req.body.prompt;
 
@@ -31,14 +16,14 @@ app.post('/ask', async (req, res) => {
       }
     );
 
-    const aiReply = response.data.choices[0].message.content;
+    console.log('Deepseek API response:', response.data);
+
+    // Try to extract message content safely
+    const aiReply = response.data.choices?.[0]?.message?.content || 'Lily had no reply.';
+
     res.json({ reply: aiReply });
   } catch (error) {
     console.error('Error calling Deepseek API:', error.message);
     res.status(500).json({ error: 'Deepseek API failed.' });
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 });
