@@ -26,7 +26,7 @@ app.post('/ask', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer sk-26597fba1c774f96ab32fefc89c442b3',
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
         },
       }
     );
