@@ -1,5 +1,22 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(bodyParser.json());
+
+app.get('/', (req, res) => {
+  res.send('SoftAI - Lily backend is live!');
+});
+
 app.post('/ask', async (req, res) => {
   const userQuestion = req.body.prompt;
+  console.log('Received question:', userQuestion);
 
   try {
     const response = await axios.post(
@@ -16,14 +33,17 @@ app.post('/ask', async (req, res) => {
       }
     );
 
-    console.log('Deepseek API response:', response.data);
+    console.log('Raw Deepseek response:', JSON.stringify(response.data, null, 2));
 
-    // Try to extract message content safely
-    const aiReply = response.data.choices?.[0]?.message?.content || 'Lily had no reply.';
-
+    const aiReply = response.data?.choices?.[0]?.message?.content || 'No reply from Deepseek.';
     res.json({ reply: aiReply });
+
   } catch (error) {
     console.error('Error calling Deepseek API:', error.message);
-    res.status(500).json({ error: 'Deepseek API failed.' });
+    res.status(500).json({ error: 'Deepseek API call failed.' });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
