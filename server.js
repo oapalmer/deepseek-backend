@@ -37,7 +37,7 @@ app.post('/ask', async (req, res) => {
     console.log('Deepseek API response:', JSON.stringify(response.data, null, 2));
 
     const aiReply = response.data?.choices?.[0]?.message?.content || 'No reply from Deepseek.';
-    res.json({ reply: aiReply });
+    res.json({ completion: aiReply });
 
   } catch (error) {
     console.error('Error calling Deepseek API:', error.message);
