@@ -1,50 +1,60 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // Replaces body-parser (built into Express)
 
+// Health check endpoint
 app.get('/', (req, res) => {
-  res.send('SoftAI - Lily backend is live!');
+  res.status(200).send('SoftAI - Lily backend is live!');
 });
 
-app.post('/ask', async (req, res) => {
-  const userQuestion = req.body.question; // Match frontend key
-  console.log('Received question:', userQuestion);
+// Chat endpoint (matches frontend expectation)
+app.post('/chat', async (req, res) => {
+  const userMessage = req.body.message; // Changed from 'question' to 'message'
+  
+  if (!userMessage) {
+    return res.status(400).json({ error: "Message is required" });
+  }
 
   try {
     const response = await axios.post(
       'https://api.deepseek.com/v1/chat/completions',
       {
         model: "deepseek-chat",
-        messages: [{ role: "user", content: userQuestion }],
-        temperature: 0.7
+        messages: [{ role: "user", content: userMessage }],
+        temperature: 0.7,
+        max_tokens: 500 // Added for response length control
       },
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
         }
       }
     );
 
-    console.log('Deepseek API response:', JSON.stringify(response.data, null, 2));
-
-    const aiReply = response.data?.choices?.[0]?.message?.content || 'No reply from Deepseek.';
-    res.json({ reply: aiReply }); // Correct structure
+    // Enhanced error handling for Deepseek response
+    const aiResponse = response.data?.choices?.[0]?.message?.content 
+      || "I couldn't process that request. Please try again.";
+      
+    res.json({ response: aiResponse }); // Matches frontend expectation
 
   } catch (error) {
-    console.error('Error calling Deepseek API:', error.message);
-    res.status(500).json({ error: 'Deepseek API call failed.' });
+    console.error('Deepseek API Error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: "AI service unavailable",
+      details: error.response?.data?.error?.message || error.message 
+    });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
