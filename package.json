@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js" // Added for development
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.6.8",
@@ -14,9 +14,6 @@
     "express": "^4.18.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2" // Added for auto-reload during development
-  },
-  "engines": {
-    "node": ">=18.x" // Explicitly specify Node.js version for Render
+    "nodemon": "^3.0.2"
   }
 }
