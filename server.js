@@ -1,51 +1,64 @@
-const express = require('express');  
-const cors = require('cors');  
-const axios = require('axios');  
-require('dotenv').config();  
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+require('dotenv').config();
 
-const app = express();  
-const PORT = process.env.PORT || 3000;  
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Allow requests ONLY from your frontend URL  
-app.use(cors({ origin: 'https://softai-lily-frontend.onrender.com' }));  
-app.use(express.json());  
+// Hugging Face model (lightweight for African internet speeds)
+const HF_MODEL = "HuggingFaceH4/zephyr-7b-beta";
 
-// Health check  
-app.get('/', (req, res) => {  
-  res.send('Backend is live!');  
-});  
+// Configure CORS for your frontend
+app.use(cors({ origin: "https://softai-lily-frontend.onrender.com" }));
+app.use(express.json());
 
-// Chat endpoint  
-app.post('/chat', async (req, res) => {  
-  const { message } = req.body;  
-  console.log('User message:', message);  
+// Track usage (replace with database later)
+const usageDB = new Map();
 
-  try {  
-    const response = await axios.post(  
-      'https://api.deepseek.com/v1/chat/completions',  
-      {  
-        model: "deepseek-chat",  
-        messages: [{ role: "user", content: message }],  
-        temperature: 0.7  
-      },  
-      {  
-        headers: {  
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,  
-          'Content-Type': 'application/json'  
-        }  
-      }  
-    );  
+// Chat endpoint
+app.post('/chat', async (req, res) => {
+  const { message, clientId = "default" } = req.body;
 
-    const aiResponse = response.data.choices[0].message.content;  
-    res.json({ response: aiResponse });  
+  try {
+    // Free tier: 1000 messages/client/month
+    const usage = usageDB.get(clientId) || 0;
+    if (usage >= 1000) {
+      return res.json({ 
+        response: "🔄 Upgrade plan for more messages (only $1/month)" 
+      });
+    }
 
-  } catch (error) {  
-    console.error('Deepseek API Error:', error.response?.data || error.message);  
-    res.status(500).json({ error: "AI service unavailable" });  
-  }  
-});  
+    // Call Hugging Face API
+    const hfResponse = await axios.post(
+      `https://api-inference.huggingface.co/models/${HF_MODEL}`,
+      {
+        inputs: `<|user|>${message}</s><|assistant|>`,
+        parameters: { max_new_tokens: 150, temperature: 0.7 }
+      },
+      { headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` } }
+    );
 
-// Start server  
-app.listen(PORT, '0.0.0.0', () => {  
-  console.log(`Server running on port ${PORT}`);  
-});  
+    // Update usage
+    usageDB.set(clientId, usage + 1);
+
+    // Clean response
+    const aiResponse = hfResponse.data[0]?.generated_text
+      .split("<|assistant|>")[1]
+      .replace(/<\/?s>/g, "")
+      .trim();
+
+    res.json({ response: aiResponse });
+
+  } catch (error) {
+    console.error("Hugging Face Error:", error.response?.data || error.message);
+    res.json({
+      response: "🌍 Our African servers are busy. Try again in 10 seconds!"
+    });
+  }
+});
+
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server ready for African businesses on port ${PORT}`);
+});
