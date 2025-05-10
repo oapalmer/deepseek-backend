@@ -1,57 +1,51 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-require('dotenv').config();
+const express = require('express');  
+const cors = require('cors');  
+const axios = require('axios');  
+require('dotenv').config();  
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const app = express();  
+const PORT = process.env.PORT || 3000;  
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Allow requests ONLY from your frontend URL  
+app.use(cors({ origin: 'https://softai-lily-frontend.onrender.com' }));  
+app.use(express.json());  
 
-// Health check endpoint
-app.get('/', (req, res) => {
-  console.log('Health check received');
-  res.status(200).send('SoftAI - Lily backend is live!');
-});
+// Health check  
+app.get('/', (req, res) => {  
+  res.send('Backend is live!');  
+});  
 
-// Chat endpoint
-app.post('/chat', async (req, res) => {
-  try {
-    const userMessage = req.body.message;
-    console.log('Received message:', userMessage);
+// Chat endpoint  
+app.post('/chat', async (req, res) => {  
+  const { message } = req.body;  
+  console.log('User message:', message);  
 
-    const response = await axios.post(
-      'https://api.deepseek.com/v1/chat/completions',
-      {
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: userMessage }],
-        temperature: 0.7,
-        max_tokens: 500
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+  try {  
+    const response = await axios.post(  
+      'https://api.deepseek.com/v1/chat/completions',  
+      {  
+        model: "deepseek-chat",  
+        messages: [{ role: "user", content: message }],  
+        temperature: 0.7  
+      },  
+      {  
+        headers: {  
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,  
+          'Content-Type': 'application/json'  
+        }  
+      }  
+    );  
 
-    const aiResponse = response.data?.choices?.[0]?.message?.content 
-      || "Response unavailable.";
-    res.json({ response: aiResponse });
+    const aiResponse = response.data.choices[0].message.content;  
+    res.json({ response: aiResponse });  
 
-  } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
-    res.status(500).json({ 
-      error: "Internal server error",
-      details: error.response?.data?.error?.message || error.message 
-    });
-  }
-});
+  } catch (error) {  
+    console.error('Deepseek API Error:', error.response?.data || error.message);  
+    res.status(500).json({ error: "AI service unavailable" });  
+  }  
+});  
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Start server  
+app.listen(PORT, '0.0.0.0', () => {  
+  console.log(`Server running on port ${PORT}`);  
+});  
