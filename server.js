@@ -7,16 +7,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const HF_MODEL = "HuggingFaceH4/zephyr-7b-beta";
 
-// Configure CORS for African clients
+// African client CORS setup
 app.use(cors({ 
   origin: ["https://softai-lily-frontend.onrender.com", "http://localhost:3000"]
 }));
 app.use(express.json());
 
-// Simple usage tracking (upgrade to database later)
+// Simple usage tracking
 const usageDB = new Map();
 
-// Real-time function for African timezones
+// Health check for Render
+app.get('/', (req, res) => {
+  res.send('🌍 SoftAI Backend for African Businesses is LIVE!');
+});
+
+// African time function
 async function getAfricanTime(location = "Africa/Lagos") {
   try {
     const formattedLocation = location.replace(/ /g, "_").replace(/\b\w/g, l => l.toUpperCase());
@@ -32,11 +37,12 @@ async function getAfricanTime(location = "Africa/Lagos") {
   }
 }
 
+// Chat endpoint
 app.post('/chat', async (req, res) => {
   const { message, clientId = "default-africa" } = req.body;
   
   try {
-    // African business usage tracking
+    // Usage tracking
     const usage = usageDB.get(clientId) || 0;
     if (usage >= 1000) {
       return res.json({ 
@@ -44,7 +50,7 @@ app.post('/chat', async (req, res) => {
       });
     }
 
-    // African Time Check (Priority Handling)
+    // African time check
     if (/time in (?!.*england|.*london)/i.test(message.toLowerCase())) {
       const locationMatch = message.match(/time in (.+?)(\?|$)/i);
       const location = locationMatch ? locationMatch[1].replace(/[^a-zA-Z ]/g, "") : "Lagos";
@@ -58,7 +64,7 @@ app.post('/chat', async (req, res) => {
       }
     }
 
-    // Hugging Face Integration for General Queries
+    // Hugging Face call
     const hfResponse = await axios.post(
       `https://api-inference.huggingface.co/models/${HF_MODEL}`,
       {
@@ -69,17 +75,16 @@ app.post('/chat', async (req, res) => {
           return_full_text: false
         }
       },
-      { headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` }
+      { headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` } }
     );
 
-    // Process response for African context
+    // Process response
     const rawResponse = hfResponse.data[0]?.generated_text || "";
     const cleanResponse = rawResponse
       .replace(/<\/?s>/g, "")
       .replace(/\[INST\].*\[\/INST\]/g, "")
       .trim();
 
-    // Update usage and send response
     usageDB.set(clientId, usage + 1);
     res.json({ 
       response: `🌍 ${cleanResponse} (Powered by African AI)` 
